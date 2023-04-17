@@ -1,32 +1,55 @@
-use std::{env, io, net::Ipv4Addr, str::FromStr};
+use std::io;
 
-use lookup::LookupService;
+use input::{caddy::Caddy, Process};
+use jsonptr::Pointer;
 
+use crate::cli::build_cli;
+
+mod cli;
+mod input;
 mod lookup;
 
 #[tokio::main]
 async fn main() {
-    let handle = io::stdin();
+    let cli = build_cli();
 
-    let mut lookup_service =
-        lookup::ipinfo::IpInfo::new(&env::var("IPINFO_API_KEY").expect("Need IP info API key."));
+    let process: Box<dyn Process> = match cli.subcommand() {
+        Some(("caddy", matches)) => Box::new(Caddy::new(
+            matches
+                .get_one::<Pointer>("input")
+                .expect("Default value missing.")
+                .to_owned(),
+            matches
+                .get_one::<Pointer>("output")
+                .expect("Default value missing.")
+                .to_owned(),
+        )),
+        _ => panic!("Unsupported CLI subcommand."),
+    };
 
-    for line in handle.lines() {
+    // // let mut lookup_service =
+    // //     lookup::ipinfo::IpInfo::new(&env::var("IPINFO_API_KEY").expect("Need IP info API key."));
+
+    for line in io::stdin().lines() {
         let Ok(input) = line else {
             eprintln!("Unable to read input line, continuing.");
             continue;
         };
 
-        let Ok(ip) = Ipv4Addr::from_str(&input) else {
-            eprintln!("Unable to parse {input} as IPv4, continuing.");
-            continue;
-        };
+        let ip = process.get_ip(&input);
 
-        let Ok(details) = lookup_service.lookup(ip).await else {
-            eprintln!("Unable to look up {ip}, continuing.");
-            continue;
-        };
-
-        println!("{details:?}");
+        match ip {
+            Some(value) => {
+                println!("{}", value)
+            }
+            None => {
+                println!("No IP found.")
+            }
+        }
     }
+
+    // let Ok(details) = lookup_service.lookup(ip).await else {
+    //     eprintln!("Unable to look up {ip}, continuing.");
+    //     continue;
+    // };
 }

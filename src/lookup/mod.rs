@@ -1,14 +1,35 @@
-use std::net::Ipv4Addr;
+use std::net::IpAddr;
 
-use ::ipinfo::{IpDetails, IpError};
+use ::ipinfo::IpError;
 use async_trait::async_trait;
 
 pub mod ipinfo;
 
+#[derive(Debug)]
+pub struct City {
+    pub name: String,
+}
+
+#[derive(Debug)]
+pub struct Region {
+    pub name: String,
+}
+
+#[derive(Debug)]
+pub struct Country {
+    pub name: String,
+}
+
+#[derive(Debug)]
+pub struct IpDetails {
+    pub ip: IpAddr,
+    pub hostname: Option<String>,
+    pub city: Option<City>,
+    pub region: Option<Region>,
+    pub country: Option<Country>,
+}
+
 #[async_trait]
-pub trait LookupService {
-    // Architecturally ugly, but reuse `ipinfo`'s types as they're really useful.
-    // If/when adding more providers, define a type like `IpDetails` ourselves locally
-    // in this repository.
-    async fn lookup(&mut self, ip: Ipv4Addr) -> Result<IpDetails, IpError>;
+pub trait Lookup {
+    async fn lookup(&self, ip: IpAddr) -> Result<IpDetails, IpError>;
 }
