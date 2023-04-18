@@ -1,6 +1,6 @@
 use std::io;
 
-use input::{caddy::Caddy, Process};
+use input::{caddy::Caddy, LogLine};
 use jsonptr::Pointer;
 
 use crate::cli::build_cli;
@@ -13,7 +13,7 @@ mod lookup;
 async fn main() {
     let cli = build_cli();
 
-    let process: Box<dyn Process> = match cli.subcommand() {
+    let process: Box<dyn LogLine> = match cli.subcommand() {
         Some(("caddy", matches)) => Box::new(Caddy::new(
             matches
                 .get_one::<Pointer>("input")
@@ -39,11 +39,11 @@ async fn main() {
         let ip = process.get_ip(&input);
 
         match ip {
-            Some(value) => {
-                println!("{}", value)
+            Ok(addr) => {
+                println!("{}", addr)
             }
-            None => {
-                println!("No IP found.")
+            Err(err) => {
+                println!("{err}")
             }
         }
     }
